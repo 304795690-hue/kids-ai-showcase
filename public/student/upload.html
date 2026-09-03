@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>上传作品 - 少儿AI作品展示平台</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">🎨 上传作品</div>
+    <div class="nav-right">
+      <a href="/student/dashboard.html" class="btn btn-outline btn-sm">← 返回</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <form class="upload-form" id="uploadForm">
+      <div class="form-group">
+        <label for="title">作品标题</label>
+        <input type="text" id="title" placeholder="给你的作品取个名字吧" required>
+      </div>
+
+      <div class="form-group">
+        <label for="type">作品类型</label>
+        <select id="type" required>
+          <option value="">请选择类型</option>
+          <option value="image">🖼 图片作品</option>
+          <option value="game">🎮 游戏作品</option>
+          <option value="video">🎬 视频作品</option>
+          <option value="app">📱 小程序/软件</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="description">作品描述 <span style="color:var(--text-light);font-weight:400;">（选填）</span></label>
+        <textarea id="description" rows="3" placeholder="简单介绍一下你的作品吧"></textarea>
+      </div>
+
+      <!-- 图片上传 -->
+      <div class="form-group" id="imageUpload" style="display:none;">
+        <label>上传图片文件</label>
+        <div class="file-zone" id="imageZone" onclick="document.getElementById('imageFile').click()">
+          <div class="icon">🖼</div>
+          <div>点击选择图片文件（JPG/PNG/GIF/WebP）</div>
+        </div>
+        <input type="file" id="imageFile" accept="image/*" style="display:none">
+        <div id="imagePreview" style="display:none;margin-top:12px;">
+          <img id="imagePreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;">
+        </div>
+      </div>
+
+      <!-- 视频上传 -->
+      <div class="form-group" id="videoUpload" style="display:none;">
+        <label>上传视频文件</label>
+        <div class="file-zone" id="videoZone" onclick="document.getElementById('videoFile').click()">
+          <div class="icon">🎬</div>
+          <div>点击选择视频文件（MP4/WebM）</div>
+        </div>
+        <input type="file" id="videoFile" accept="video/*" style="display:none">
+        <div id="videoPreview" style="display:none;margin-top:12px;">
+          <video id="videoPreviewVid" style="max-width:100%;max-height:200px;border-radius:8px;" controls></video>
+        </div>
+      </div>
+
+      <!-- 游戏代码粘贴 -->
+      <div class="form-group" id="gameCode" style="display:none;">
+        <label>粘贴HTML代码</label>
+        <textarea id="codeContent" rows="12" placeholder="在这里粘贴你用AI生成的HTML代码..."></textarea>
+      </div>
+
+      <!-- 小程序 -->
+      <div class="form-group" id="appUpload" style="display:none;">
+        <label>上传截图 <span style="color:var(--text-light);font-weight:400;">（选填）</span></label>
+        <div class="file-zone" id="screenshotZone" onclick="document.getElementById('screenshotFile').click()">
+          <div class="icon">📸</div>
+          <div>点击上传小程序截图</div>
+        </div>
+        <input type="file" id="screenshotFile" accept="image/*" style="display:none">
+        <div id="screenshotPreview" style="display:none;margin-top:12px;">
+          <img id="screenshotPreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;">
+        </div>
+        <br>
+        <label>粘贴代码 <span style="color:var(--text-light);font-weight:400;">（选填）</span></label>
+        <textarea id="appCode" rows="8" placeholder="粘贴你的HTML代码..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submitBtn">提交作品</button>
+    </form>
+  </div>
+
+  <script>
+    const studentId = localStorage.getItem('studentId');
+    if (!studentId) window.location.href = '/index.html';
+
+    const typeSelect = document.getElementById('type');
+    const imageUpload = document.getElementById('imageUpload');
+    const videoUpload = document.getElementById('videoUpload');
+    const gameCode = document.getElementById('gameCode');
+    const appUpload = document.getElementById('appUpload');
+
+    typeSelect.addEventListener('change', () => {
+      const type = typeSelect.value;
+      imageUpload.style.display = type === 'image' ? 'block' : 'none';
+      videoUpload.style.display = type === 'video' ? 'block' : 'none';
+      gameCode.style.display = type === 'game' ? 'block' : 'none';
+      appUpload.style.display = type === 'app' ? 'block' : 'none';
+    });
+
+    // 文件选择 + 预览
+    function setupFileInput(inputId, previewId, previewImgId, isVideo) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      input.addEventListener('change', () => {
+        if (input.files.length > 0) {
+          const file = input.files[0];
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (isVideo) {
+              const vid = document.getElementById(previewImgId);
+              vid.src = e.target.result;
+              preview.style.display = 'block';
+            } else {
+              const img = document.getElementById(previewImgId);
+              img.src = e.target.result;
+              preview.style.display = 'block';
+            }
+          };
+          reader.readAsDataURL(file);
+          document.getElementById(inputId.replace('File', 'Zone')).innerHTML =
+            '<div class="icon">✅</div><div>已选择: ' + file.name + '</div>';
+        }
+      });
+    }
+
+    setupFileInput('imageFile', 'imagePreview', 'imagePreviewImg', false);
+    setupFileInput('videoFile', 'videoPreview', 'videoPreviewVid', true);
+    setupFileInput('screenshotFile', 'screenshotPreview', 'screenshotPreviewImg', false);
+
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value.trim();
+      const type = typeSelect.value;
+      const description = document.getElementById('description').value.trim();
+
+      if (!title) { alert('请输入作品标题'); return; }
+      if (!type) { alert('请选择作品类型'); return; }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '上传中...';
+
+      const body = { title, type, description, code_content: null, image_data: null, video_data: null, screenshot_data: null };
+
+      try {
+        if (type === 'image') {
+          const file = document.getElementById('imageFile').files[0];
+          if (!file) { alert('请选择图片文件'); submitBtn.disabled = false; submitBtn.textContent = '提交作品'; return; }
+          body.image_data = await toBase64(file);
+        }
+
+        if (type === 'video') {
+          const file = document.getElementById('videoFile').files[0];
+          if (!file) { alert('请选择视频文件'); submitBtn.disabled = false; submitBtn.textContent = '提交作品'; return; }
+          body.video_data = await toBase64(file);
+        }
+
+        if (type === 'game') {
+          const code = document.getElementById('codeContent').value.trim();
+          if (!code) { alert('请粘贴游戏代码'); submitBtn.disabled = false; submitBtn.textContent = '提交作品'; return; }
+          body.code_content = code;
+        }
+
+        if (type === 'app') {
+          const screenshot = document.getElementById('screenshotFile').files[0];
+          const code = document.getElementById('appCode').value.trim();
+          if (screenshot) body.screenshot_data = await toBase64(screenshot);
+          if (code) body.code_content = code;
+        }
+
+        const res = await fetch('/api/works', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Student-Id': studentId },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('作品上传成功！');
+          window.location.href = '/student/dashboard.html';
+        } else {
+          alert(data.message);
+        }
+      } catch (e) {
+        alert('上传失败：' + e.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交作品';
+      }
+    });
+
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>注册 - 少儿AI作品展示平台</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <h1>🎨 加入我们</h1>
+    <p class="subtitle">注册一个账号，开始展示你的AI作品</p>
+
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="display_name">你的姓名</label>
+        <input type="text" id="display_name" placeholder="例如: 小明" required>
+      </div>
+      <div class="form-group">
+        <label for="password">设置密码</label>
+        <input type="password" id="password" placeholder="至少6位密码" minlength="6" required>
+      </div>
+      <div class="form-group">
+        <label for="confirm">确认密码</label>
+        <input type="password" id="confirm" placeholder="再次输入密码" required>
+      </div>
+      <button type="submit" class="btn btn-primary">注册并登录</button>
+    </form>
+
+    <div class="auth-link">
+      已有账号？<a href="/index.html">去登录 →</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const display_name = document.getElementById('display_name').value.trim();
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+
+      if (!display_name) { alert('请输入姓名'); return; }
+      if (password.length < 6) { alert('密码至少6位'); return; }
+      if (password !== confirm) { alert('两次密码不一致'); return; }
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ display_name, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem('studentId', data.user.id);
+          localStorage.setItem('studentName', data.user.display_name);
+          alert('注册成功！你的账号是：' + data.user.username);
+          window.location.href = '/student/dashboard.html';
+        } else {
+          alert(data.message);
+        }
+      } catch (e) {
+        alert('网络错误：' + e.message);
+      }
+    });
+  </script>
+</body>
+</html>

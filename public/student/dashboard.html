@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的作品 - 少儿AI作品展示平台</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">🎨 我的作品</div>
+    <div class="nav-right">
+      <span class="user-info" id="userInfo"></span>
+      <a href="/student/upload.html" class="btn btn-primary btn-sm">+ 上传作品</a>
+      <a href="/index.html" class="btn btn-outline btn-sm" onclick="localStorage.clear()">退出</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div class="icon">🎨</div>
+      <h3>还没有作品</h3>
+      <p>快去上传你的第一个AI作品吧！</p>
+      <br>
+      <a href="/student/upload.html" class="btn btn-primary">上传作品</a>
+    </div>
+
+    <div id="worksSection">
+      <div class="page-header">
+        <h2>我的作品</h2>
+        <a href="/student/upload.html" class="btn btn-primary">+ 上传新作品</a>
+      </div>
+
+      <div class="works-table">
+        <table>
+          <thead>
+            <tr>
+              <th>作品标题</th>
+              <th>类型</th>
+              <th>上传时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="worksList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const studentId = localStorage.getItem('studentId');
+    const studentName = localStorage.getItem('studentName');
+
+    if (!studentId) {
+      window.location.href = '/index.html';
+    }
+
+    document.getElementById('userInfo').textContent = '👋 ' + studentName;
+
+    async function loadWorks() {
+      try {
+        const res = await fetch('/api/my-works', {
+          headers: { 'X-Student-Id': studentId }
+        });
+        const works = await res.json();
+        const tbody = document.getElementById('worksList');
+        const empty = document.getElementById('emptyState');
+        const section = document.getElementById('worksSection');
+
+        if (works.length === 0) {
+          empty.style.display = 'block';
+          section.style.display = 'none';
+          return;
+        }
+
+        empty.style.display = 'none';
+        section.style.display = 'block';
+
+        tbody.innerHTML = works.map(w => `
+          <tr>
+            <td><strong>${w.title}</strong></td>
+            <td><span class="type-tag ${w.type}">${typeName(w.type)}</span></td>
+            <td>${formatTime(w.created_at)}</td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="deleteWork(${w.id})">删除</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function typeName(type) {
+      const map = { image: '图片', game: '游戏', video: '视频', app: '小程序' };
+      return map[type] || type;
+    }
+
+    function formatTime(t) {
+      const d = new Date(t);
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    async function deleteWork(id) {
+      if (!confirm('确定要删除这个作品吗？')) return;
+      try {
+        const res = await fetch('/api/works/' + id, {
+          method: 'DELETE',
+          headers: { 'X-Student-Id': studentId }
+        });
+        const data = await res.json();
+        if (data.success) {
+          loadWorks();
+        } else {
+          alert(data.message);
+        }
+      } catch (e) {
+        alert('删除失败');
+      }
+    }
+
+    loadWorks();
+  </script>
+</body>
+</html>

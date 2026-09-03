@@ -1,0 +1,13 @@
+{
+  "name": "kids-ai-showcase",
+  "version": "2.0.0",
+  "description": "少儿AI作品展示平台 - 学生上传作品，家长公开浏览",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "init-db": "node init-db.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

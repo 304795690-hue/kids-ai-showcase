@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>作品画廊 - 少儿AI作品展示平台</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="hero">
+    <h1>🎨 少儿AI创作作品展示</h1>
+    <p>欢迎欣赏孩子们用AI创作的精彩作品！</p>
+    <br>
+    <a href="/index.html" class="btn btn-outline" style="color:white; border-color:white; background:rgba(255,255,255,0.1)">👦 学生登录上传作品</a>
+  </div>
+
+  <div class="container">
+    <div class="filter-bar">
+      <button class="filter-btn active" data-type="all" onclick="filterWorks('all')">全部作品</button>
+      <button class="filter-btn" data-type="image" onclick="filterWorks('image')">🖼 图片作品</button>
+      <button class="filter-btn" data-type="game" onclick="filterWorks('game')">🎮 游戏作品</button>
+      <button class="filter-btn" data-type="video" onclick="filterWorks('video')">🎬 视频作品</button>
+      <button class="filter-btn" data-type="app" onclick="filterWorks('app')">📱 小程序</button>
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div class="icon">🎨</div>
+      <h3>还没有作品</h3>
+      <p>快来上传第一个作品吧！</p>
+    </div>
+
+    <div id="galleryGrid" class="gallery-grid"></div>
+  </div>
+
+  <!-- 作品详情弹窗 -->
+  <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <h2 id="modalTitle"></h2>
+      <div class="student-name" id="modalStudent"></div>
+      <span id="modalType" class="work-type"></span>
+      <p id="modalDescription" class="description"></p>
+      <div id="modalPreview" class="work-preview"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentType = 'all';
+    let allWorks = [];
+
+    async function loadWorks() {
+      try {
+        const res = await fetch('/api/gallery?type=' + currentType);
+        allWorks = await res.json();
+        renderWorks();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function typeIcon(type) {
+      const icons = { image: '🖼', game: '🎮', video: '🎬', app: '📱' };
+      return icons[type] || '🎨';
+    }
+
+    function typeName(type) {
+      const map = { image: '图片作品', game: '游戏作品', video: '视频作品', app: '小程序作品' };
+      return map[type] || type;
+    }
+
+    function renderWorks() {
+      const grid = document.getElementById('galleryGrid');
+      const empty = document.getElementById('emptyState');
+
+      let filtered = allWorks;
+      if (currentType !== 'all') {
+        filtered = filtered.filter(w => w.type === currentType);
+      }
+
+      if (filtered.length === 0) {
+        empty.style.display = 'block';
+        grid.innerHTML = '';
+        return;
+      }
+
+      empty.style.display = 'none';
+      grid.innerHTML = filtered.map(w => `
+        <div class="work-card" onclick="openModal(${w.id})">
+          <div class="preview">
+            <span>${typeIcon(w.type)}</span>
+            <span class="type-badge">${typeIcon(w.type)} ${typeName(w.type)}</span>
+          </div>
+          <div class="info">
+            <h3>${w.title}</h3>
+            <div class="meta">
+              <span>${w.student_name}</span>
+              <span>${formatDate(w.created_at)}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function formatDate(t) {
+      const d = new Date(t);
+      return (d.getMonth()+1) + '/' + d.getDate();
+    }
+
+    function filterWorks(type) {
+      currentType = type;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+      });
+      loadWorks();
+    }
+
+    async function openModal(id) {
+      const modalOverlay = document.getElementById('modalOverlay');
+      modalOverlay.classList.add('show');
+
+      document.getElementById('modalTitle').textContent = '加载中...';
+      document.getElementById('modalPreview').innerHTML = '';
+
+      try {
+        const res = await fetch('/api/gallery/' + id);
+        const work = await res.json();
+
+        document.getElementById('modalTitle').textContent = work.title;
+        document.getElementById('modalStudent').textContent = '👦 ' + work.student_name;
+        document.getElementById('modalType').textContent = typeName(work.type);
+        document.getElementById('modalType').className = 'work-type ' + work.type;
+        document.getElementById('modalDescription').textContent = work.description || '';
+        document.getElementById('modalDescription').style.display = work.description ? 'block' : 'none';
+
+        const preview = document.getElementById('modalPreview');
+        preview.innerHTML = '';
+
+        if (work.type === 'image' && work.image_data) {
+          preview.innerHTML = `<img src="${work.image_data}" alt="${work.title}">`;
+        } else if (work.type === 'video' && work.video_data) {
+          preview.innerHTML = `<video controls src="${work.video_data}"></video>`;
+        } else if (work.type === 'game' && work.code_content) {
+          const iframe = document.createElement('iframe');
+          iframe.srcdoc = work.code_content;
+          iframe.width = '100%';
+          iframe.height = '500';
+          iframe.frameBorder = '0';
+          preview.appendChild(iframe);
+        } else if (work.type === 'app') {
+          if (work.screenshot_data) {
+            preview.innerHTML = `<img src="${work.screenshot_data}" alt="${work.title}">`;
+          }
+          if (work.code_content) {
+            const pre = document.createElement('pre');
+            pre.className = 'code-display';
+            pre.textContent = work.code_content;
+            preview.appendChild(pre);
+          }
+        } else if (work.code_content) {
+          const iframe = document.createElement('iframe');
+          iframe.srcdoc = work.code_content;
+          iframe.width = '100%';
+          iframe.height = '500';
+          iframe.frameBorder = '0';
+          preview.appendChild(iframe);
+        } else if (work.image_data) {
+          preview.innerHTML = `<img src="${work.image_data}" alt="${work.title}">`;
+        } else {
+          preview.innerHTML = '<div class="empty-state"><p>暂无预览内容</p></div>';
+        }
+      } catch (e) {
+        document.getElementById('modalTitle').textContent = '加载失败';
+        document.getElementById('modalPreview').innerHTML = '<p>作品数据加载失败，请重试</p>';
+      }
+    }
+
+    function closeModal(e) {
+      if (e && e.target !== document.getElementById('modalOverlay')) return;
+      document.getElementById('modalOverlay').classList.remove('show');
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    loadWorks();
+  </script>
+</body>
+</html>
