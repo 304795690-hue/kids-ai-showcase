@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const DATABASE_URL = process.env.DATABASE_URL || null;
 
 // 中间件
 app.use(express.json({ limit: '50mb' }));
@@ -223,9 +224,23 @@ app.get('/api/health', (req, res) => {
 });
 
 // 启动
-app.listen(PORT, () => {
-  console.log('🚀 少儿AI作品展示平台已启动！');
-  console.log(`📌 访问地址: http://localhost:${PORT}`);
-  console.log('🎨 公开画廊: http://localhost:' + PORT + '/gallery.html');
-  console.log('👦 学生登录: http://localhost:' + PORT + '/index.html');
-});
+db.init()
+  .then(async () => {
+    // 自动填充演示数据（若数据库为空）
+    const { seed } = require('./init-db');
+    const result = await seed();
+    if (result.seeded) {
+      console.log('✅ ' + result.message);
+    }
+    app.listen(PORT, () => {
+      console.log('🚀 少儿AI作品展示平台已启动！');
+      console.log(`📌 访问地址: http://localhost:${PORT}`);
+      console.log('🎨 公开画廊: http://localhost:' + PORT + '/gallery.html');
+      console.log('👦 学生登录: http://localhost:' + PORT + '/index.html');
+      console.log(DATABASE_URL ? '🗄 数据存储: Neon云数据库' : '🗄 数据存储: 本地文件');
+    });
+  })
+  .catch((e) => {
+    console.error('数据库初始化失败:', e.message);
+    process.exit(1);
+  });
