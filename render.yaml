@@ -1,0 +1,16 @@
+# Render Blueprint 配置
+# Web Service 提供少儿AI作品展示平台
+services:
+  - type: web
+    name: kids-ai-showcase
+    env: node
+    plan: free
+    region: ohio
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      # DATABASE_URL 由用户提供（Neon 或任何 Postgres 数据库连接串）
+      - key: DATABASE_URL
+        value: ""
+      - key: PORT
+        value: 10000
