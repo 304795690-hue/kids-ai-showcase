@@ -1,11 +1,12 @@
 const db = require('./database');
 
-function init() {
+// 填充演示数据（可复用：server 启动空库时也会调用）
+async function seed() {
+  await db.init();
   const data = db.loadData();
 
   if (data.users.length > 0) {
-    console.log('✅ 数据库已有数据，跳过初始化');
-    return;
+    return { seeded: false, message: '数据库已有数据，跳过初始化' };
   }
 
   // 演示学生账号
@@ -16,7 +17,7 @@ function init() {
     { id: 4, username: 'stu004', password: '123456', display_name: '小刚', created_at: '2026-09-01T08:00:00.000Z' }
   );
 
-  // 演示作品（使用新结构：只有代码类作品有数据，图片/视频需要学生上传）
+  // 演示作品（只有代码类作品有数据，图片/视频需要学生上传）
   data.works = [
     {
       id: 1, student_id: 1, title: '接水果游戏', type: 'game', description: '用键盘左右键控制挡板接住水果，接住得分，漏掉会扣分',
@@ -38,10 +39,21 @@ function init() {
     }
   ];
 
-  db.saveData(data);
-  console.log('✅ 数据库初始化完成（含演示数据）');
-  console.log('👦 演示账号: stu001 ~ stu004 / 123456');
-  console.log('🎮 演示作品: 接水果游戏、躲避小球、简易计算器');
+  await db.saveData(data);
+  return { seeded: true, message: '数据库初始化完成（含演示数据）' };
 }
 
-init();
+module.exports = { seed };
+
+// 作为命令行脚本直接运行时执行
+if (require.main === module) {
+  seed().then((r) => {
+    console.log(r.seeded ? '✅ ' + r.message : r.message);
+    console.log('👦 演示账号: stu001 ~ stu004 / 123456');
+    console.log('🎮 演示作品: 接水果游戏、躲避小球、简易计算器');
+    process.exit(0);
+  }).catch((e) => {
+    console.error('初始化失败:', e.message);
+    process.exit(1);
+  });
+}
